@@ -1,0 +1,62 @@
+name: Build Patched Zellij
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        target:
+          - aarch64-apple-darwin
+          - x86_64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }},wasm32-wasip1
+
+      - name: Build release
+        run: cargo build --release --target ${{ matrix.target }} --bin zellij
+
+      - name: Package
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/zellij dist/zellij-${{ matrix.target }}
+          chmod +x dist/zellij-${{ matrix.target }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zellij-${{ matrix.target }}
+          path: dist/zellij-${{ matrix.target }}
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu,wasm32-wasip1
+
+      - name: Build release
+        run: cargo build --release --bin zellij
+
+      - name: Package
+        run: |
+          mkdir -p dist
+          cp target/release/zellij dist/zellij-x86_64-unknown-linux-gnu
+          chmod +x dist/zellij-x86_64-unknown-linux-gnu
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zellij-x86_64-unknown-linux-gnu
+          path: dist/zellij-x86_64-unknown-linux-gnu
